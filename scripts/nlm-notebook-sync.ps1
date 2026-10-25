@@ -47,7 +47,7 @@ param(
     [switch]$DryRun,
     [switch]$Force,                          # ignore the hash manifest
     [switch]$Check,                          # exit 1 if any notebook is stale; change nothing
-    [switch]$NoLogin,                        # never shell out to 'nlm login'; fail with instructions instead
+    [switch]$NoLogin,                        # never renew auth automatically (no 'nlm auth refresh', no 'nlm login'); fail with instructions
     [switch]$HttpOnlyRefresh,                # pass --http-only to 'nlm auth refresh'
     [int]$WaitTimeout = 600,
     [int]$MaxAgeDays = 7                     # re-sync this often even if no packed document changed
@@ -190,8 +190,9 @@ if (-not $DryRun) {
 
     # Expired auth is the single most common failure here, it happens mid-day on a schedule nobody
     # controls, and the fix is one command. Making the operator run it by hand buys nothing except a
-    # dead run — so renewal is part of THIS script's job, not a note in its output. With a saved browser
-    # profile `nlm login` completes headlessly, which is what makes automating it safe.
+    # dead run — so renewal is part of THIS script's job, not a note in its output. `nlm auth refresh` is
+    # the CLI's unattended command (headless, never prompts); current `nlm login` opens a browser for an
+    # interactive sign-in, so it is only the fallback for old CLIs that have no `auth refresh`.
     if (-not $probe.Ok -and -not $NoLogin) {
         Write-Host "Auth rejected — renewing (nlm auth refresh)..." -ForegroundColor Yellow
         $refreshArgs = @("auth", "refresh")
