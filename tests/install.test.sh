@@ -276,8 +276,8 @@ test_default_target_after_cd() {
   proj="$(mktemp -d)"
   printf 'existing\n' > "$proj/.gitignore"
 
-  local i
-  for i in 1 2; do
+  local _
+  for _ in 1 2; do
     if [[ "$type" == "sh" ]]; then
       (cd "$start" && cd "$proj" && bash "$INSTALL_SH" --gitignore-manifest >/dev/null 2>&1) || true
     else
