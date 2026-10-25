@@ -32,8 +32,9 @@
 #
 # Usage:
 #   pwsh -File ./scripts/nlm-notebook-sync.ps1                 # sync every notebook in the config
-#     └─ renews auth by itself: preflight read → on rejection runs 'nlm login' (headless) → re-probes.
+#     └─ renews auth by itself: preflight read → on rejection runs 'nlm auth refresh' → re-probes.
 #        Use -NoLogin to opt out and fail with instructions.
+#   pwsh -File ./scripts/nlm-notebook-sync.ps1 -HttpOnlyRefresh # renew using nlm auth refresh --http-only
 #   pwsh -File ./scripts/nlm-notebook-sync.ps1 -DryRun         # show what would change, touch nothing
 #   pwsh -File ./scripts/nlm-notebook-sync.ps1 -Target proj-core,proj-ops
 #   pwsh -File ./scripts/nlm-notebook-sync.ps1 -Force          # re-upload even if nothing is stale
@@ -47,6 +48,7 @@ param(
     [switch]$Force,                          # ignore the hash manifest
     [switch]$Check,                          # exit 1 if any notebook is stale; change nothing
     [switch]$NoLogin,                        # never shell out to 'nlm login'; fail with instructions instead
+    [switch]$HttpOnlyRefresh,                # pass --http-only to 'nlm auth refresh'
     [int]$WaitTimeout = 600,
     [int]$MaxAgeDays = 7                     # re-sync this often even if no packed document changed
 )
@@ -191,9 +193,20 @@ if (-not $DryRun) {
     # dead run — so renewal is part of THIS script's job, not a note in its output. With a saved browser
     # profile `nlm login` completes headlessly, which is what makes automating it safe.
     if (-not $probe.Ok -and -not $NoLogin) {
-        Write-Host "Auth rejected — renewing (nlm login)..." -ForegroundColor Yellow
-        nlm login 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-        # Re-probe rather than trusting login's exit code: the CLI reports success on failures often
+        Write-Host "Auth rejected — renewing (nlm auth refresh)..." -ForegroundColor Yellow
+        $refreshArgs = @("auth", "refresh")
+        if ($HttpOnlyRefresh) { $refreshArgs += "--http-only" }
+        $refreshOut = nlm @refreshArgs 2>&1 | Out-String
+        if ($refreshOut) {
+            $refreshOut.TrimEnd().Split("`n") | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        }
+
+        if ($refreshOut -match "No such command") {
+            Write-Host "CLI is old and should be upgraded. Falling back to nlm login..." -ForegroundColor Yellow
+            nlm login 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        }
+
+        # Re-probe rather than trusting renewal's exit code: the CLI reports success on failures often
         # enough that only a completed read proves the credentials are actually usable.
         $probe = Test-NlmAuth -Id $selected[0].Id
         if ($probe.Ok) { Write-Host "Auth renewed." -ForegroundColor Green }
@@ -206,7 +219,7 @@ if (-not $DryRun) {
         if ($NoLogin) {
             Write-Host "Renew auth and re-run:  nlm login" -ForegroundColor Yellow
         } else {
-            Write-Host "Automatic 'nlm login' did not restore access." -ForegroundColor Yellow
+            Write-Host "Automatic nlm auth refresh failed. A human must run nlm login interactively." -ForegroundColor Yellow
         }
         Write-Host "Running from an agent on someone else's machine? Ask them to run it:  nlm login" -ForegroundColor Yellow
         Write-Host "If 'nlm login' itself times out, your CLI predates the notebook.google.com host move:" -ForegroundColor Yellow
