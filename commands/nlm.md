@@ -12,6 +12,7 @@ If the map and this file ever disagree, the map wins.
 2. Run `nlm notebook query <alias> "<question>"` (set `PYTHONUTF8=1` on Windows), or the MCP
    `notebook_query` tool with the **UUID** (MCP rejects aliases; get the UUID from `nlm alias list`).
 3. **Empty or failed result? Check auth FIRST.** `Authentication expired`, `Profile 'default' not found`
-   or a silent empty answer does not mean an empty notebook. Run `nlm login` and query again.
+   or a silent empty answer does not mean an empty notebook. Run `nlm login --check`; on failure, run `nlm auth refresh`
+   (or MCP `refresh_auth`); if refresh fails, run `nlm doctor`; only then ask human to run interactive `nlm login`.
 4. Report the answer **with its citations**; do not paraphrase the sources away. If the question is a decision
    or a blocker, name the decision record or source that resolves it.
