@@ -267,6 +267,37 @@ test_different_cwd() {
   return 0
 }
 
+test_default_target_after_cd() {
+  # Default target "." after changing directory inside the shell/session. For install.ps1 this is the
+  # case where the PowerShell location and the process working directory differ.
+  local type="$1"
+  local start proj
+  start="$(mktemp -d)"
+  proj="$(mktemp -d)"
+  printf 'existing\n' > "$proj/.gitignore"
+
+  local i
+  for i in 1 2; do
+    if [[ "$type" == "sh" ]]; then
+      (cd "$start" && cd "$proj" && bash "$INSTALL_SH" --gitignore-manifest >/dev/null 2>&1) || true
+    else
+      (cd "$start" && pwsh -NoProfile -Command "Set-Location -LiteralPath '$proj'; & '$INSTALL_PS1' -GitignoreManifest" >/dev/null 2>&1) || true
+    fi
+  done
+
+  local ok=0
+  if [[ -f "$proj/.claude/commands/nlm.md" ]] \
+     && [[ "$(grep -cx '.nlm-sync-manifest.json' "$proj/.gitignore")" == "1" ]] \
+     && [[ ! -e "$start/.gitignore" ]] && [[ ! -e "$start/.claude" ]]; then
+    ok=1
+  else
+    echo "Default target after cd: files or .gitignore landed in the wrong directory" >&2
+  fi
+
+  rm -rf "$start" "$proj"
+  [[ $ok -eq 1 ]]
+}
+
 run_test() {
   local installer_type="$1" # "sh" or "ps1"
   local test_name="$2"
@@ -296,6 +327,7 @@ for t in "${TEST_TYPES[@]}"; do
   run_test "$t" "--gitignore-manifest twice adds line once" test_gitignore_manifest_twice
   run_test "$t" "--target /does/not/exist exits 2" test_nonexistent_target
   run_test "$t" "running from a different cwd works" test_different_cwd
+  run_test "$t" "default target after cd installs into the new directory" test_default_target_after_cd
 done
 
 if [[ $FAILED -ne 0 ]]; then

@@ -21,6 +21,11 @@ if (-not (Test-Path -Path $Target -PathType Container)) {
     exit 2
 }
 
+# [System.IO.File] resolves relative paths against the process's start directory, not the PowerShell
+# location, so after a Set-Location in an interactive session a relative target ('.' by default) would
+# be read and written in the wrong directory. Pin it to an absolute path once.
+$Target = (Resolve-Path -LiteralPath $Target).ProviderPath
+
 # Prerequisite checks (warn, never fail)
 if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
     if ($IsMacOS) {
