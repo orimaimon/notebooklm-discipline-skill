@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="17" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-10-25" time="13:16:58">
+  <environment user="jules" user-domain="" nunit-version="2.5.8.0" clr-version="10.0.13" cwd="/app" os-version="6.8.0" platform="Linux" machine-name="devbox" />
+  <culture-info current-culture="" current-uiculture="" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="40.5638" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="/app/tests/nlm-context-pack.Tests.ps1" executed="True" result="Success" success="True" time="6.9192" asserts="0" description="/app/tests/nlm-context-pack.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="nlm-context-pack" executed="True" result="Success" success="True" time="6.3789" asserts="0" description="nlm-context-pack">
+            <results>
+              <test-case description="extracts decisions with status Accepted and Proposed" name="nlm-context-pack.extracts decisions with status Accepted and Proposed" time="1.1096" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="excludes review-notes.md from decision index" name="nlm-context-pack.excludes review-notes.md from decision index" time="0.4977" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="sorts migrations naturally showing V10__c.sql as last" name="nlm-context-pack.sorts migrations naturally showing V10__c.sql as last" time="0.4846" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="succeeds and handles missing manifest docs gracefully" name="nlm-context-pack.succeeds and handles missing manifest docs gracefully" time="0.5009" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="produces stable ContentSha256 across consecutive builds with no doc change" name="nlm-context-pack.produces stable ContentSha256 across consecutive builds with no doc change" time="0.7881" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="changes ContentSha256 when a manifest doc content changes" name="nlm-context-pack.changes ContentSha256 when a manifest doc content changes" time="0.7599" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="produces identical ContentSha256 for CRLF vs LF line endings" name="nlm-context-pack.produces identical ContentSha256 for CRLF vs LF line endings" time="2.1293" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+      <test-suite type="TestFixture" name="/app/tests/nlm-notebook-sync.Tests.ps1" executed="True" result="Success" success="True" time="30.3248" asserts="0" description="/app/tests/nlm-notebook-sync.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="nlm-notebook-sync" executed="True" result="Success" success="True" time="30.2871" asserts="0" description="nlm-notebook-sync">
+            <results>
+              <test-case description="exits 1 on -Check for a never-synced repo" name="nlm-notebook-sync.exits 1 on -Check for a never-synced repo" time="2.3121" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="replaces pre-seeded source title and leaves unrelated source untouched" name="nlm-notebook-sync.replaces pre-seeded source title and leaves unrelated source untouched" time="9.5894" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="retries delete and reports 1 old copy removed when initial delete fails" name="nlm-notebook-sync.retries delete and reports 1 old copy removed when initial delete fails" time="9.3452" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="skips notebooks on a second sync and passes -Check with exit 0" name="nlm-notebook-sync.skips notebooks on a second sync and passes -Check with exit 0" time="6.9397" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="exits 1 and changes nothing in state file when NLM_AUTH=bad with -NoLogin" name="nlm-notebook-sync.exits 1 and changes nothing in state file when NLM_AUTH=bad with -NoLogin" time="1.8073" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="throws Unknown notebook alias for invalid target" name="nlm-notebook-sync.throws Unknown notebook alias for invalid target" time="0.2875" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+      <test-suite type="TestFixture" name="/app/tests/nlm-repair-host-patch.Tests.ps1" executed="True" result="Success" success="True" time="3.3197" asserts="0" description="/app/tests/nlm-repair-host-patch.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="nlm-repair-host-patch" executed="True" result="Success" success="True" time="3.2987" asserts="0" description="nlm-repair-host-patch">
+            <results>
+              <test-case description="-Check on unpatched cdp.py exits 1" name="nlm-repair-host-patch.-Check on unpatched cdp.py exits 1" time="0.5427" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="patches old cdp.py, creates .bak, produces valid Python syntax, and is idempotent on second run" name="nlm-repair-host-patch.patches old cdp.py, creates .bak, produces valid Python syntax, and is idempotent on second run" time="1.5328" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="patches CRLF file while preserving CRLF line endings" name="nlm-repair-host-patch.patches CRLF file while preserving CRLF line endings" time="0.6416" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="leaves file already containing notebook.google.com untouched with exit 0" name="nlm-repair-host-patch.leaves file already containing notebook.google.com untouched with exit 0" time="0.5776" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>

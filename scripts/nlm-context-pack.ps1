@@ -208,11 +208,11 @@ function Get-ContentFingerprint {
         $body = if (Test-Path $full) {
             # Normalise line endings before hashing: a fingerprint that flips on `core.autocrlf` is not a
             # fingerprint of the content.
-            Get-Sha256Text (((Get-Content -Path $full -Raw -Encoding utf8) -replace "\r\n", "\n"))
+            Get-Sha256Text (((Get-Content -Path $full -Raw -Encoding utf8) -replace "\r\n", "`n"))
         } else { "MISSING" }
         [void]$sb.AppendLine("DOC|$($e.part)|$($e.doc)|$($e.title)|$($e.why)|$body")
     }
-    if ($script:IntroText) { [void]$sb.AppendLine("INTRO|$(Get-Sha256Text ($script:IntroText -replace "\r\n", "\n"))") }
+    if ($script:IntroText) { [void]$sb.AppendLine("INTRO|$(Get-Sha256Text ($script:IntroText -replace "\r\n", "`n"))") }
 
     foreach ($a in $Adrs) { [void]$sb.AppendLine("ADR|$($a.Number)|$($a.Title)|$($a.Status)|$($a.Path)") }
     foreach ($f in $script:Facts) { [void]$sb.AppendLine("FACT|$($f.Label)|$($f.Items -join ',')") }
