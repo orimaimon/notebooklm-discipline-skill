@@ -62,28 +62,37 @@ Authenticate with your Google account and verify system health.
 
 ### Step 4: Install the Skill into Your Project
 
-Run the installer from this repo to copy the skill, command, scripts, and example configuration into your target project directory.
+Clone this repository once, anywhere outside your project, then run the installer **from your project's
+root** (the default target is the current directory) or point `--target` / `-Target` at it.
 
 - **Linux / macOS:**
   ```bash
-  ./scripts/install.sh --target .
+  git clone https://github.com/orimaimon/notebooklm-discipline-skill ~/notebooklm-discipline-skill
+  cd /path/to/your-project
+  bash ~/notebooklm-discipline-skill/scripts/install.sh --gitignore-manifest
   ```
 - **Windows / Any OS (PowerShell 7):**
   ```powershell
-  pwsh -File ./scripts/install.ps1 -Target .
+  git clone https://github.com/orimaimon/notebooklm-discipline-skill $HOME/notebooklm-discipline-skill
+  Set-Location C:\path\to\your-project
+  pwsh -File $HOME/notebooklm-discipline-skill/scripts/install.ps1 -GitignoreManifest
   ```
+
+Re-running it is safe: identical files are left alone, a file you changed is skipped unless you pass
+`--force` / `-Force` (exit code 3 tells you something was skipped), and `nlm.config.json` is never overwritten.
 
 <details>
 <summary>Manual Installation Fallback</summary>
 
-If you prefer installing manually without running the installer script:
+If you prefer installing manually without running the installer script, from your project's root:
 ```bash
-mkdir -p .claude/skills .claude/commands scripts
-cp -r skills/notebooklm-discipline .claude/skills/
-cp commands/nlm.md .claude/commands/
-cp scripts/*.ps1 scripts/
-cp nlm.config.example.json nlm.config.json
-cp templates/notebook-map.md docs/notebooklm_notebook_map.md
+SKILL=~/notebooklm-discipline-skill        # where you cloned this repository
+mkdir -p .claude/skills .claude/commands scripts docs
+cp -r "$SKILL/skills/notebooklm-discipline" .claude/skills/
+cp "$SKILL/commands/nlm.md" .claude/commands/
+cp "$SKILL"/scripts/nlm-*.ps1 scripts/
+cp -n "$SKILL/nlm.config.example.json" nlm.config.json
+cp -n "$SKILL/templates/notebook-map.md" docs/notebooklm_notebook_map.md
 echo ".nlm-sync-manifest.json" >> .gitignore
 ```
 </details>

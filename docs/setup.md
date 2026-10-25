@@ -150,14 +150,14 @@ To install `notebooklm-discipline` into your target codebase, use the repository
 
 ### Installer Interface
 
-The installer supports the following options:
+Run the installer from your **project's root**, using the path where you cloned this repository (shown below as `<skill-repo>`); `--target` / `-Target` points it at another directory instead. The installer supports the following options:
 - **Linux / macOS (`scripts/install.sh`):**
   ```bash
-  ./scripts/install.sh [--target <dir>] [--dry-run] [--force] [--gitignore-manifest]
+  bash <skill-repo>/scripts/install.sh [--target <dir>] [--dry-run] [--force] [--gitignore-manifest]
   ```
 - **Windows / Any OS (`scripts/install.ps1`):**
   ```powershell
-  pwsh -File ./scripts/install.ps1 [-Target <dir>] [-DryRun] [-Force] [-GitignoreManifest]
+  pwsh -File <skill-repo>/scripts/install.ps1 [-Target <dir>] [-DryRun] [-Force] [-GitignoreManifest]
   ```
 
 By default, the installer targets the current directory (`.`). It copies:
