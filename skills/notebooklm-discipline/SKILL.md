@@ -40,6 +40,17 @@ nlm notebook query <alias-or-id> "What was decided about X, and why?"
 
 MCP: tool `notebook_query` takes the **UUID**. Aliases exist only in the CLI, so MCP returns `NOT_FOUND` on an alias.
 
+## Auth: check, renew, then ask
+
+When auth fails or results look suspicious, handle auth non-interactively before asking a human:
+
+1. **Check session:** Run `nlm login --check` to validate current credentials without changing them.
+2. **Renew credentials:** On failure, run `nlm auth refresh` (or `nlm auth refresh --http-only` where no browser may open; MCP equivalent: `refresh_auth`). *Caveat:* If `NOTEBOOKLM_COOKIES` is set, it overrides saved credentials and `nlm auth refresh` refuses (exit 1); update `NOTEBOOKLM_COOKIES` in your environment or MCP config instead.
+3. **Diagnose:** If refresh fails, run `nlm doctor` to diagnose installation, MCP server, and auth issues.
+4. **Ask human:** Only if `nlm doctor` cannot fix it, ask a human to run interactive `nlm login`. An unattended agent must never run interactive `nlm login`.
+
+A failure at any step means UNKNOWN, never "the notebook is empty" (see [Rules for correct use](#rules-for-correct-use-break-these-and-you-waste-quota-leak-ip-or-believe-something-false)).
+
 ## Ground a task prompt before writing code
 
 Query the relevant notebook for the area's boundaries, decisions, events and anti-patterns. Then paste
@@ -82,6 +93,8 @@ write your own, keep them:
   printed. If it's dropped silently, the decision disappears and an agent "discovers" it needs deciding again.
 
 ## ⚠️ Can't connect? `nlm login` hangs → "Login timeout"
+
+Run `nlm doctor` before anything else.
 
 Chain of symptoms: `nlm login` → `Waiting for sign-in... (300s elapsed)` → `Error: Login timeout`; after that
 **every** command fails with `Profile 'default' not found`.
