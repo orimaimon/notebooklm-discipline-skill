@@ -1,0 +1,37 @@
+{
+  "project": "Acme",
+  "docsRoot": "docs",
+  "mainRef": "origin/main",
+  "introFile": "docs/nlm/pack-intro.md",
+
+  "manifest": [
+    { "part": "A", "doc": "IRON_RULES.md",       "title": "Non-negotiable engineering rules",
+      "why": "Violating any of these is a defect regardless of how good the idea is." },
+    { "part": "B", "doc": "system_overview.md",  "title": "Module map: what exists and what each module owns",
+      "why": "Check here before proposing anything 'new'. Most of it already exists." },
+    { "part": "C", "doc": "glossary.md",         "title": "Domain glossary",
+      "why": "Canonical meaning of our terms. Industry literature uses some of them differently." },
+    { "part": "F", "doc": "audits/ground-truth.md", "title": "Code-verified ground truth: what is really built",
+      "why": "Counted from the code, not from documentation. Outranks every plan document." }
+  ],
+
+  "auditPart": "F",
+
+  "decisionIndex": {
+    "dirs": ["adr"],
+    "insertBefore": null,
+    "fileNumberPattern": "^\\d{4}",
+    "headingPattern": "(?i)^\\**ADR[-\\s]?\\d{3,4}\\b"
+  },
+
+  "facts": [
+    { "label": "Modules",    "path": "src/main/java/com/acme",          "kind": "dirs",  "list": true },
+    { "label": "Migrations", "path": "src/main/resources/db/migration", "kind": "files", "filter": "V*.sql" }
+  ],
+
+  "notebooks": [
+    { "alias": "acme-core", "id": "00000000-0000-0000-0000-000000000000", "tier": 0, "desc": "Hub: repo canon + per-domain summaries" },
+    { "alias": "acme-adr",  "id": "00000000-0000-0000-0000-000000000001", "tier": 1, "desc": "Individual decision records" },
+    { "alias": "acme-sec",  "id": "00000000-0000-0000-0000-000000000002", "tier": 2, "desc": "Security / tenancy research" }
+  ]
+}
