@@ -48,4 +48,4 @@ jobs:
       - name: Validate SKILL.md YAML frontmatter
         shell: bash
         run: |
-          python3 -c "import yaml;t=open('skills/notebooklm-discipline/SKILL.md').read();yaml.safe_load(t.split('---')[1])"
+          python -c "import yaml;t=open('skills/notebooklm-discipline/SKILL.md').read();yaml.safe_load(t.split('---')[1])"
