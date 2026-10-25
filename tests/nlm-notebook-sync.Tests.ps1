@@ -122,8 +122,102 @@ Describe "nlm-notebook-sync" {
             $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"", "-NoLogin" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
             $p.ExitCode | Should -Be 1
 
-            $content = Get-Content -Path $stateFile -Raw -Encoding utf8
-            $content.Trim() | Should -Be "{`"notebooks`":{}}"
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            @($state.notebooks.psobject.properties).Count | Should -Be 0
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -match "^source (add|delete)" }).Count | Should -Be 0
+        } finally {
+            Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "renews auth with nlm auth refresh when auth is bad and NLM_REFRESH=ok" {
+        $repo = New-TestRepo
+        $stateFile = Join-Path $repo "nlm-state.json"
+        $configPath = Join-Path $repo "nlm.config.json"
+
+        try {
+            Add-FakeNlmToPath
+            $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; NLM_REFRESH = "ok"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
+            $p.ExitCode | Should -Be 0
+
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -eq "auth refresh" }).Count | Should -BeGreaterThan 0
+            ($callStrs | Where-Object { $_ -eq "login" }).Count | Should -Be 0
+        } finally {
+            Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "passes --http-only to nlm auth refresh when -HttpOnlyRefresh is specified" {
+        $repo = New-TestRepo
+        $stateFile = Join-Path $repo "nlm-state.json"
+        $configPath = Join-Path $repo "nlm.config.json"
+
+        try {
+            Add-FakeNlmToPath
+            $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"", "-HttpOnlyRefresh" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; NLM_REFRESH = "ok"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
+            $p.ExitCode | Should -Be 0
+
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -eq "auth refresh --http-only" }).Count | Should -BeGreaterThan 0
+        } finally {
+            Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "fails and does not call login when auth refresh fails with NLM_REFRESH=fail" {
+        $repo = New-TestRepo
+        $stateFile = Join-Path $repo "nlm-state.json"
+        $configPath = Join-Path $repo "nlm.config.json"
+
+        try {
+            Add-FakeNlmToPath
+            $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; NLM_REFRESH = "fail"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
+            $p.ExitCode | Should -Be 1
+
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -match "^source add" }).Count | Should -Be 0
+            ($callStrs | Where-Object { $_ -eq "login" }).Count | Should -Be 0
+        } finally {
+            Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "falls back to nlm login exactly once when CLI is missing auth refresh command" {
+        $repo = New-TestRepo
+        $stateFile = Join-Path $repo "nlm-state.json"
+        $configPath = Join-Path $repo "nlm.config.json"
+
+        try {
+            Add-FakeNlmToPath
+            $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; NLM_REFRESH = "missing"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
+            $p.ExitCode | Should -Be 0
+
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -eq "login" }).Count | Should -Be 1
+        } finally {
+            Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "does not call auth refresh or login when -NoLogin is specified with bad auth" {
+        $repo = New-TestRepo
+        $stateFile = Join-Path $repo "nlm-state.json"
+        $configPath = Join-Path $repo "nlm.config.json"
+
+        try {
+            Add-FakeNlmToPath
+            $p = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-File", "`"$scriptPath`"", "-Config", "`"$configPath`"", "-NoLogin" -Environment @{ NLM_STATE = $stateFile; NLM_AUTH = "bad"; PATH = $env:PATH } -NoNewWindow -Wait -PassThru
+            $p.ExitCode | Should -Be 1
+
+            $state = Get-Content -Path $stateFile -Raw -Encoding utf8 | ConvertFrom-Json
+            $callStrs = $state.calls | ForEach-Object { $_ -join ' ' }
+            ($callStrs | Where-Object { $_ -match "^auth refresh" -or $_ -eq "login" }).Count | Should -Be 0
         } finally {
             Remove-Item -Path $repo -Recurse -Force -ErrorAction SilentlyContinue
         }

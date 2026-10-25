@@ -11,7 +11,7 @@ def load_state(state_file):
                 return json.load(f)
         except Exception:
             pass
-    return {"notebooks": {}}
+    return {"notebooks": {}, "calls": [], "auth_refreshed": False}
 
 def save_state(state_file, state):
     if not state_file:
@@ -23,14 +23,23 @@ def save_state(state_file, state):
 def main():
     state_file = os.environ.get("NLM_STATE")
     state = load_state(state_file)
+    if "calls" not in state:
+        state["calls"] = []
+    if "auth_refreshed" not in state:
+        state["auth_refreshed"] = False
+    if "notebooks" not in state:
+        state["notebooks"] = {}
 
     args = sys.argv[1:]
+    state["calls"].append(args)
+    save_state(state_file, state)
+
     if not args:
         print("nlm fake CLI")
         sys.exit(0)
 
     # Check NLM_AUTH
-    if os.environ.get("NLM_AUTH") == "bad":
+    if os.environ.get("NLM_AUTH") == "bad" and not state.get("auth_refreshed", False):
         if len(args) >= 2 and args[0] == "notebook" and args[1] == "get":
             print("Authentication expired")
             sys.exit(0)
@@ -38,8 +47,26 @@ def main():
     cmd = args[0]
 
     if cmd == "login":
+        state["auth_refreshed"] = True
+        save_state(state_file, state)
         print("Logged in successfully.")
         sys.exit(0)
+
+    elif cmd == "auth":
+        subcmd = args[1] if len(args) > 1 else ""
+        if subcmd == "refresh":
+            nlm_refresh = os.environ.get("NLM_REFRESH")
+            if nlm_refresh == "fail":
+                print("Refresh failed")
+                sys.exit(1)
+            elif nlm_refresh == "missing":
+                print("No such command 'auth'.")
+                sys.exit(2)
+            else:
+                state["auth_refreshed"] = True
+                save_state(state_file, state)
+                print("Auth refreshed successfully.")
+                sys.exit(0)
 
     elif cmd == "notebook":
         if len(args) >= 2 and args[1] == "get":
