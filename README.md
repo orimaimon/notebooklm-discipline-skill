@@ -1,18 +1,122 @@
 # notebooklm-discipline
 
-An agent skill (Claude Code / any `SKILL.md`-compatible agent) for using **NotebookLM as the grounding layer
-of a project's own documents**: query a cited notebook before you make a decision, and don't trust the
-results it gets wrong without warning.
+**NotebookLM as the grounding layer for project context and architectural decisions.**
 
-It came out of months of running NotebookLM as the "what did we decide and why" oracle for a large
-codebase with a dozen notebooks. Most of the skill is the list of things that went wrong:
+`notebooklm-discipline` is an agent skill (compatible with Claude Code and `SKILL.md`-compatible AI assistants) and a PowerShell 7 automation toolkit. It helps software teams query cited NotebookLM notebooks before making architecture or codebase decisions, and systematically sync repo documentation into NotebookLM without risking duplicate sources or false conclusions.
 
-- an auth failure read as "the notebook is empty" (a 264-source notebook was written off)
-- errors that return exit 0
-- `--auto-import` bringing in 40–60% off-topic sources
-- syncs that append duplicates, which then get cited as confidently as the originals
-- a "stale" warning that was always on, so nobody read it
-- hardcoded notebook tables in skills going stale while still looking authoritative
+*Note on alternative servers:* The legacy [`PleasePrompto/notebooklm-mcp`](https://github.com/PleasePrompto/notebooklm-mcp) server is archived and no longer maintained (since September 2026); using [`notebooklm-mcp-cli`](https://github.com/jacob-bd/gemini-notebook-mcp-cli) is recommended.
+
+For in-depth guides, see:
+- [Setup Guide](docs/setup.md)
+- [Troubleshooting Guide](docs/troubleshooting.md)
+
+---
+
+## Quick Start
+
+Follow these 5 steps to go from zero to your first query and context sync.
+
+### Step 1: Install Prerequisites
+
+You need **PowerShell 7+ (`pwsh`)**, **git**, **Python with `uv` (or `pipx`)**, and a **Google account with NotebookLM**.
+
+- **Windows:**
+  ```powershell
+  winget install --id Microsoft.PowerShell
+  ```
+- **macOS:**
+  ```bash
+  brew install --cask powershell
+  ```
+- **Linux (Ubuntu/Debian):**
+  Follow the official [Microsoft PowerShell on Linux installation guide](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-linux).
+
+### Step 2: Install the NotebookLM MCP CLI
+
+Install `notebooklm-mcp-cli` using `uv` or `pipx`. This package provides both the `nlm` CLI and the `notebooklm-mcp` server executable.
+
+```bash
+uv tool install notebooklm-mcp-cli
+# or: pipx install notebooklm-mcp-cli
+```
+
+### Step 3: Sign In and Verify
+
+Authenticate with your Google account and verify system health.
+
+- **Windows:**
+  *(If using non-Latin terminal output, set `PYTHONUTF8=1` in your environment first: `$env:PYTHONUTF8=1`)*
+  ```powershell
+  nlm login
+  nlm login --check
+  nlm doctor
+  ```
+- **macOS / Linux:**
+  ```bash
+  nlm login
+  nlm login --check
+  nlm doctor
+  ```
+
+*(To non-interactively renew tokens later, run `nlm auth refresh`.)*
+
+### Step 4: Install the Skill into Your Project
+
+Clone this repository once, anywhere outside your project, then run the installer **from your project's
+root** (the default target is the current directory) or point `--target` / `-Target` at it.
+
+- **Linux / macOS:**
+  ```bash
+  git clone https://github.com/orimaimon/notebooklm-discipline-skill ~/notebooklm-discipline-skill
+  cd /path/to/your-project
+  bash ~/notebooklm-discipline-skill/scripts/install.sh --gitignore-manifest
+  ```
+- **Windows / Any OS (PowerShell 7):**
+  ```powershell
+  git clone https://github.com/orimaimon/notebooklm-discipline-skill $HOME/notebooklm-discipline-skill
+  Set-Location C:\path\to\your-project
+  pwsh -File $HOME/notebooklm-discipline-skill/scripts/install.ps1 -GitignoreManifest
+  ```
+
+Re-running it is safe: identical files are left alone, a file you changed is skipped unless you pass
+`--force` / `-Force` (exit code 3 tells you something was skipped), and `nlm.config.json` is never overwritten.
+
+<details>
+<summary>Manual Installation Fallback</summary>
+
+If you prefer installing manually without running the installer script, from your project's root:
+```bash
+SKILL=~/notebooklm-discipline-skill        # where you cloned this repository
+mkdir -p .claude/skills .claude/commands scripts docs
+cp -r "$SKILL/skills/notebooklm-discipline" .claude/skills/
+cp "$SKILL/commands/nlm.md" .claude/commands/
+cp "$SKILL"/scripts/nlm-*.ps1 scripts/
+cp -n "$SKILL/nlm.config.example.json" nlm.config.json
+cp -n "$SKILL/templates/notebook-map.md" docs/notebooklm_notebook_map.md
+echo ".nlm-sync-manifest.json" >> .gitignore
+```
+</details>
+
+After installation, update `nlm.config.json` with your project's notebook IDs (obtained via `nlm notebook list`). Configure your AI client MCP connections with `nlm setup` (or client-specific commands like `nlm setup add cursor`).
+
+### Step 5: First Query & Sync
+
+1. Inspect the generated Master Context pack without writing to NotebookLM:
+   ```bash
+   pwsh -File ./scripts/nlm-context-pack.ps1 -Show
+   ```
+
+2. Perform a dry-run sync to review planned changes:
+   ```bash
+   pwsh -File ./scripts/nlm-notebook-sync.ps1 -DryRun
+   ```
+
+3. Execute the sync to update your target notebooks:
+   ```bash
+   pwsh -File ./scripts/nlm-notebook-sync.ps1
+   ```
+
+---
 
 ## Contents
 
@@ -28,32 +132,9 @@ codebase with a dozen notebooks. Most of the skill is the list of things that we
 | `scripts/nlm-config.ps1` | Shared loader for `nlm.config.json` |
 | `nlm.config.example.json` | All project-specific settings: what goes in the pack, which notebooks exist |
 
-## Install
+---
 
-Requires [`notebooklm-mcp-cli`](https://github.com/jacob-bd/gemini-notebook-mcp-cli) (`nlm`). The scripts need
-PowerShell 7+ (`pwsh`, which runs on Windows, macOS and Linux) and `git`.
-
-```bash
-# Claude Code, per project
-mkdir -p .claude/skills .claude/commands scripts
-cp -r skills/notebooklm-discipline .claude/skills/
-cp commands/nlm.md .claude/commands/
-cp scripts/*.ps1 scripts/
-cp nlm.config.example.json nlm.config.json           # fill in: manifest docs, decision dirs, notebook IDs
-cp templates/notebook-map.md docs/notebooklm_notebook_map.md
-echo ".nlm-sync-manifest.json" >> .gitignore          # optional: or commit it to share sync state
-```
-
-Then:
-
-```bash
-nlm login
-pwsh -File ./scripts/nlm-context-pack.ps1 -Show       # build only; inspect the output
-pwsh -File ./scripts/nlm-notebook-sync.ps1 -DryRun    # what would change
-pwsh -File ./scripts/nlm-notebook-sync.ps1            # sync
-```
-
-### `nlm.config.json`
+## `nlm.config.json` Settings
 
 | Key | Meaning |
 |---|---|
@@ -66,11 +147,17 @@ pwsh -File ./scripts/nlm-notebook-sync.ps1            # sync
 | `notebooks[]` | `{alias, id, tier, desc}`, sync targets |
 | `docsRoot` · `mainRef` · `sourceTitle` · `packFileName` · `manifestFile` · `recentCommits` | Defaults: `docs` · `origin/main` · derived · derived · `.nlm-sync-manifest.json` · `30` |
 
-Relative paths resolve from the directory that holds the config file.
+*Relative paths resolve from the directory that holds the config file.*
 
-This is a different thing from the upstream CLI's own bundled skill. That one documents the commands; this
-one is about using them without fooling yourself.
+---
+
+## Documentation
+
+- [Setup Guide](docs/setup.md) — Detailed OS-specific installation, connecting MCP clients (Claude Code, Claude Desktop, Cursor), managing notebook IDs/aliases, and CI setup.
+- [Troubleshooting Guide](docs/troubleshooting.md) — Common symptoms, causes, and step-by-step fixes for auth timeouts, UNKNOWN responses, bulk uploads, and verification checks.
+
+---
 
 ## License
 
-MIT
+[MIT](LICENSE)
