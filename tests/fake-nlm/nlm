@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+import sys
+import os
+import json
+import uuid
+
+def load_state(state_file):
+    if state_file and os.path.exists(state_file):
+        try:
+            with open(state_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"notebooks": {}}
+
+def save_state(state_file, state):
+    if not state_file:
+        return
+    os.makedirs(os.path.dirname(os.path.abspath(state_file)), exist_ok=True)
+    with open(state_file, 'w', encoding='utf-8') as f:
+        json.dump(state, f, indent=2)
+
+def main():
+    state_file = os.environ.get("NLM_STATE")
+    state = load_state(state_file)
+
+    args = sys.argv[1:]
+    if not args:
+        print("nlm fake CLI")
+        sys.exit(0)
+
+    # Check NLM_AUTH
+    if os.environ.get("NLM_AUTH") == "bad":
+        if len(args) >= 2 and args[0] == "notebook" and args[1] == "get":
+            print("Authentication expired")
+            sys.exit(0)
+
+    cmd = args[0]
+
+    if cmd == "login":
+        print("Logged in successfully.")
+        sys.exit(0)
+
+    elif cmd == "notebook":
+        if len(args) >= 2 and args[1] == "get":
+            nb_id = args[2] if len(args) > 2 else "unknown"
+            if nb_id not in state["notebooks"]:
+                state["notebooks"][nb_id] = {"sources": [], "delete_fails_once": False}
+                save_state(state_file, state)
+            print(json.dumps({"id": nb_id, "name": f"Notebook {nb_id}"}))
+            sys.exit(0)
+
+    elif cmd == "source":
+        subcmd = args[1] if len(args) > 1 else ""
+        if subcmd == "add":
+            # nlm source add <id> --file <p> --title <t> --wait ...
+            nb_id = args[2]
+            title = "Master Context"
+            if "--title" in args:
+                idx = args.index("--title")
+                if idx + 1 < len(args):
+                    title = args[idx + 1]
+
+            if nb_id not in state["notebooks"]:
+                state["notebooks"][nb_id] = {"sources": [], "delete_fails_once": False}
+
+            new_id = f"src-{uuid.uuid4().hex[:8]}"
+            state["notebooks"][nb_id]["sources"].append({"id": new_id, "title": title})
+            state["notebooks"][nb_id]["delete_fails_once"] = True
+            save_state(state_file, state)
+
+            print(json.dumps({"source_id": new_id, "title": title, "status": "completed"}))
+            sys.exit(0)
+
+        elif subcmd == "list":
+            # nlm source list <id> --json
+            nb_id = args[2]
+            nb = state["notebooks"].get(nb_id, {"sources": []})
+            print(json.dumps(nb.get("sources", [])))
+            sys.exit(0)
+
+        elif subcmd == "delete":
+            # nlm source delete <ids...> --confirm --json
+            # extract IDs until flags
+            ids_to_delete = []
+            for a in args[2:]:
+                if a.startswith("--"):
+                    break
+                ids_to_delete.append(a)
+
+            # Find which notebook contains these sources
+            target_nb_id = None
+            for nb_id, nb_data in state["notebooks"].items():
+                existing_ids = [s["id"] for s in nb_data.get("sources", [])]
+                if any(i in existing_ids for i in ids_to_delete):
+                    target_nb_id = nb_id
+                    break
+
+            if target_nb_id and state["notebooks"][target_nb_id].get("delete_fails_once"):
+                state["notebooks"][target_nb_id]["delete_fails_once"] = False
+                save_state(state_file, state)
+                print(json.dumps({"error": "Failed to delete sources."}))
+                sys.exit(0)
+
+            if target_nb_id:
+                state["notebooks"][target_nb_id]["sources"] = [
+                    s for s in state["notebooks"][target_nb_id].get("sources", [])
+                    if s["id"] not in ids_to_delete
+                ]
+                save_state(state_file, state)
+
+            print(json.dumps({"status": "deleted", "ids": ids_to_delete}))
+            sys.exit(0)
+
+    print(f"Unknown fake nlm command: {' '.join(args)}")
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()

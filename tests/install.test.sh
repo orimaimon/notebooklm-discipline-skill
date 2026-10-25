@@ -281,7 +281,14 @@ test_default_target_after_cd() {
     if [[ "$type" == "sh" ]]; then
       (cd "$start" && cd "$proj" && bash "$INSTALL_SH" --gitignore-manifest >/dev/null 2>&1) || true
     else
-      (cd "$start" && pwsh -NoProfile -Command "Set-Location -LiteralPath '$proj'; & '$INSTALL_PS1' -GitignoreManifest" >/dev/null 2>&1) || true
+      # Paths embedded in a -Command string are not converted by Git Bash on Windows, so hand
+      # native pwsh a Windows path there (cygpath exists only under Git Bash/MSYS/Cygwin).
+      local proj_native="$proj" ps1_native="$INSTALL_PS1"
+      if command -v cygpath >/dev/null 2>&1; then
+        proj_native="$(cygpath -w "$proj")"
+        ps1_native="$(cygpath -w "$INSTALL_PS1")"
+      fi
+      (cd "$start" && pwsh -NoProfile -Command "Set-Location -LiteralPath '$proj_native'; & '$ps1_native' -GitignoreManifest" >/dev/null 2>&1) || true
     fi
   done
 
